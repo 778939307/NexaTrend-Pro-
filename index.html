@@ -1,0 +1,552 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NexaTrend Pro - Your Ultimate Gold Trading Solution. Automate your trading with advanced strategies and real-time insights.">
+  <meta name="keywords" content="NexaTrend Pro, gold trading, XAUUSD, MT5, Expert Advisor, automated trading, trading strategies, risk management">
+  <meta name="author" content="Your Company">
+  <title>NexaTrend Pro - Ultimate Gold Trading EA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: #39FF14;
+      --accent-color: #39FF14;
+      --secondary-bg: #222;
+      --heading-font: 'Orbitron', sans-serif;
+      --body-font: 'Roboto', sans-serif;
+    }
+    body {
+      font-family: var(--body-font);
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      line-height: 1.6;
+    }
+    header {
+      background-color: #000;
+      padding: 1rem;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+    }
+    nav {
+      text-align: center;
+    }
+    nav a {
+      color: var(--text-color);
+      margin: 0 1.5rem;
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: color 0.3s;
+    }
+    nav a:hover {
+      color: #FFD700;
+    }
+    .hero {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+    #matrix-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.3;
+    }
+    .hero h1 {
+      font-family: var(--heading-font);
+      font-size: 3.5rem;
+      margin: 0;
+      text-shadow: 0 0 10px var(--accent-color);
+    }
+    .hero p {
+      font-size: 1.5rem;
+      margin: 1rem 0;
+    }
+    .hero button {
+      background-color: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: box-shadow 0.3s, transform 0.3s;
+    }
+    .hero button:hover {
+      box-shadow: 0 0 20px var(--accent-color);
+      transform: scale(1.05);
+    }
+    .section {
+      padding: 4rem 2rem;
+      background-color: #181818;
+    }
+    .section h2 {
+      font-family: var(--heading-font);
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 0 5px var(--accent-color);
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+    .feature {
+      background-color: var(--secondary-bg);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 15px var(--accent-color);
+      text-align: center;
+      transition: transform 0.3s;
+    }
+    .feature:hover {
+      transform: translateY(-10px);
+    }
+    .feature i {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .strategies, .risk-management, .dashboard, .get-started, .support, .backtests {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .pricing {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+    }
+    .plan {
+      background-color: var(--secondary-bg);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 15px var(--accent-color);
+      width: 300px;
+      text-align: center;
+      transition: transform 0.3s;
+      position: relative;
+    }
+    .plan:hover {
+      transform: scale(1.05);
+    }
+    .plan.popular .badge {
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      background-color: #FFD700;
+      color: #000;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+    .plan button {
+      background-color: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: box-shadow 0.3s;
+    }
+    .plan button:hover {
+      box-shadow: 0 0 15px var(--accent-color);
+    }
+    .testimonials {
+      padding: 4rem 2rem;
+      background-color: #181818;
+      text-align: center;
+    }
+    .testimonial {
+      max-width: 600px;
+      margin: 2rem auto;
+      font-style: italic;
+    }
+    .backtests {
+      padding: 4rem 2rem;
+      background-color: #181818;
+    }
+    .report-card {
+      background-color: var(--secondary-bg);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 15px var(--accent-color);
+      margin-bottom: 2rem;
+    }
+    .report-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    footer {
+      background-color: #000;
+      padding: 2rem;
+      text-align: center;
+    }
+    footer a {
+      color: var(--text-color);
+      margin: 0 0.5rem;
+      text-decoration: none;
+    }
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      .hero p {
+        font-size: 1.2rem;
+      }
+      .pricing {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#features">Features</a>
+      <a href="#strategies">Strategies</a>
+      <a href="#risk-management">Risk Management</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#get-started">Get Started</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#backtests">Backtests</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+  <section class="hero" id="home">
+    <canvas id="matrix-canvas"></canvas>
+    <h1>NexaTrend Pro</h1>
+    <p>Your Ultimate Gold Trading Solution</p>
+    <button>Get Started Now</button>
+  </section>
+  <section class="section features" id="features">
+    <h2>Why Choose NexaTrend Pro?</h2>
+    <p>Unlock the full potential of gold trading with NexaTrend Pro, the cutting-edge Expert Advisor (EA) designed exclusively for MetaTrader 5. Tailored for the XAUUSD (gold) H1 timeframe, NexaTrend Pro combines two powerful, proprietary strategies with state-of-the-art risk management and an intuitive dashboard. Whether you’re trading on a proprietary (prop) firm account or your personal account, this EA is your key to consistent, automated profits.</p>
+    <div class="features">
+      <div class="feature" data-aos="fade-up">
+        <i class="fas fa-bolt"></i>
+        <h3>Dual-Strategy Powerhouse</h3>
+        <p>Harness the power of two complementary strategies—Reversion Ranger and Trend Trailblazer.</p>
+      </div>
+      <div class="feature" data-aos="fade-up" data-aos-delay="100">
+        <i class="fas fa-shield-alt"></i>
+        <h3>Unmatched Risk Management</h3>
+        <p>Protect your capital with customizable drawdown limits and intelligent lot sizing.</p>
+      </div>
+      <div class="feature" data-aos="fade-up" data-aos-delay="200">
+        <i class="fas fa-newspaper"></i>
+        <h3>News-Smart Trading</h3>
+        <p>Automatically avoid high-impact news events to minimize risk.</p>
+      </div>
+      <div class="feature" data-aos="fade-up" data-aos-delay="300">
+        <i class="fas fa-chart-line"></i>
+        <h3>Real-Time Dashboard</h3>
+        <p>Stay in control with live stats, strategy insights, and an equity curve.</p>
+      </div>
+      <div class="feature" data-aos="fade-up" data-aos-delay="400">
+        <i class="fas fa-sync-alt"></i>
+        <h3>Recovery Mode</h3>
+        <p>Optionally recover from losses with a strategic, controlled approach.</p>
+      </div>
+      <div class="feature" data-aos="fade-up" data-aos-delay="500">
+        <i class="fas fa-tachometer-alt"></i>
+        <h3>Volatility-Adaptive</h3>
+        <p>Adjusts dynamically to market conditions for optimal trades.</p>
+      </div>
+    </div>
+  </section>
+  <section class="section strategies" id="strategies">
+    <h2>Trading Strategies Built for Success</h2>
+    <p>NexaTrend Pro leverages two expertly crafted strategies, each powered by up to four carefully selected technical indicators:</p>
+    <ul>
+      <li><strong>Reversion Ranger Strategy:</strong> Detects precise entry points in overextended markets, targeting quick reversals for profit.</li>
+      <li><strong>Trend Trailblazer Strategy:</strong> Identifies and rides powerful trends, maximizing gains during sustained market moves.</li>
+    </ul>
+    <p>These strategies are backed by rigorous testing across various market conditions, ensuring consistent performance. With NexaTrend Pro, you can trade confidently, knowing that overfitting is not a concern—our approach is built for real-world adaptability.</p>
+  </section>
+  <section class="section risk-management" id="risk-management">
+    <h2>Protect Your Capital with Advanced Risk Controls</h2>
+    <p>Your account’s safety is our priority. NexaTrend Pro includes:</p>
+    <ul>
+      <li><strong>Daily Drawdown Limit:</strong> Automatically pauses trading if losses exceed your set threshold for the day.</li>
+      <li><strong>Max Drawdown Protection:</strong> Stops trading if equity drops beyond your predefined limit, safeguarding your account.</li>
+      <li><strong>Maximum Daily Loss:</strong> Caps losses at a fixed dollar amount to prevent further trading that day.</li>
+      <li><strong>Flexible Lot Sizing:</strong> Choose from fixed lots, percentage-based sizing, or a volatility-adjusted mode.</li>
+      <li><strong>Spread Filter:</strong> Only trades when spreads are favorable, ensuring cost-effective entries.</li>
+    </ul>
+  </section>
+  <section class="section dashboard" id="dashboard">
+    <h2>Stay in Control with the Interactive Dashboard</h2>
+    <p>Monitor and manage your trading with ease using NexaTrend Pro’s real-time dashboard:</p>
+    <ul>
+      <li><strong>Live Performance Metrics:</strong> Track balance, equity, profit, trade count, win rate, and more.</li>
+      <li><strong>Strategy-Specific Insights:</strong> View individual performance for each strategy to fine-tune your approach.</li>
+      <li><strong>Drawdown Alerts:</strong> Visual progress bars warn you as drawdown limits approach.</li>
+      <li><strong>Equity Curve:</strong> Watch your account grow with a dynamic, updating chart.</li>
+      <li><strong>Sleek Design:</strong> Enjoy a modern, user-friendly interface with animated updates.</li>
+    </ul>
+  </section>
+  <section class="section get-started" id="get-started">
+    <h2>Get Started in Minutes</h2>
+    <p>Setting up NexaTrend Pro is quick and straightforward:</p>
+    <ol>
+      <li><strong>Install:</strong> Attach the EA to the H1 chart of XAUUSD in MetaTrader 5.</li>
+      <li><strong>Customize:</strong> Adjust settings to match your trading style:
+        <ul>
+          <li>Enable/disable Reversion Ranger and Trend Trailblazer.</li>
+          <li>Set risk parameters like drawdown limits and lot sizing.</li>
+          <li>Define your preferred trading hours.</li>
+        </ul>
+      </li>
+      <li><strong>Capital:</strong> Start with as little as $500, though $1,000 is recommended for optimal performance.</li>
+      <li><strong>Setfiles:</strong> Contact stratumelite111 on Discord to receive the latest setfiles.</li>
+      <li><strong>Dashboard:</strong> Activate the dashboard for real-time insights (highly recommended).</li>
+    </ol>
+    <p>A comprehensive user manual is included to guide you through every step.</p>
+  </section>
+  <section class="section pricing" id="pricing">
+    <h2>Pricing Plans</h2>
+    <p>Don’t miss your chance to elevate your gold trading. Start trading on the H1 timeframe with just $500 ($1,000 recommended) and experience the future of gold trading today.</p>
+    <div class="pricing">
+      <div class="plan popular">
+        <span class="badge">Best Value</span>
+        <h3>Lifetime Access</h3>
+        <p>$299</p>
+        <p>One-time payment for unlimited access</p>
+        <button>Buy Now</button>
+      </div>
+      <div class="plan">
+        <h3>Monthly Subscription</h3>
+        <p>$49/month</p>
+        <p>Flexible plan with full features</p>
+        <button>Subscribe</button>
+      </div>
+    </div>
+  </section>
+  <section class="section testimonials" id="testimonials">
+    <h2>What Our Users Say</h2>
+    <div class="testimonial" data-aos="fade-in">
+      <p>"NexaTrend Pro has transformed my trading - consistent profits with zero stress!"</p>
+      <p>- Jane S., Professional Trader</p>
+    </div>
+    <div class="testimonial" data-aos="fade-in" data-aos-delay="100">
+      <p>"The risk management saved me from big losses. Best EA I’ve used!"</p>
+      <p>- Mark T., Retail Trader</p>
+    </div>
+  </section>
+  <section class="section backtests" id="backtests">
+    <h2>Backtest Reports</h2>
+    <p>Explore the performance of NexaTrend Pro through detailed backtest reports across various risk levels and capital amounts.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Report 0 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">Demo Account - XAUUSD (May 2023)</h3>
+        <img src="/images/backtest-0.jpg" alt="Backtest screenshot of NexaTrend PRO on XAUUSD, May 12-15, 2023">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Platform:</strong> MetaTrader 4</li>
+          <li><strong>Capital:</strong> Not specified</li>
+          <li><strong>Profit:</strong> $2050 (across 4 trades)</li>
+          <li><strong>Win Rate:</strong> 100% (4/4 trades)</li>
+          <li><strong>Max Drawdown:</strong> 120%</li>
+        </ul>
+        <p class="text-sm italic">Note: No trades executed in this specific period.</p>
+      </div>
+      <!-- Report 1 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">25K Capital - Detailed Metrics</h3>
+        <img src="/images/backtest-1.jpg" alt="Detailed backtest report with metrics and histograms for 25K capital">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $25,000</li>
+          <li><strong>Total Net Profit:</strong> $47,850.70</li>
+          <li><strong>Profit Factor:</strong> 2.60</li>
+          <li><strong>Win Rate:</strong> 89.49%</li>
+          <li><strong>Max Drawdown:</strong> 5.63%</li>
+        </ul>
+        <a href="/downloads/backtest-1.pdf" class="text-purple-400 hover:underline">Download Full Report</a>
+      </div>
+      <!-- Report 2 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">25K Capital - Prop Firm Settings (2024)</h3>
+        <img src="/images/backtest-2.jpg" alt="Backtest showing 191% gain with 25K capital in 2024">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $25,000</li>
+          <li><strong>Total Profit:</strong> $47,780</li>
+          <li><strong>Gain:</strong> 191%</li>
+          <li><strong>Max Drawdown:</strong> 3.68%</li>
+          <li><strong>Period:</strong> Jan-Nov 2024</li>
+        </ul>
+      </div>
+      <!-- Report 3 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">1K Capital - High Risk (2024)</h3>
+        <img src="/images/backtest-3.jpg" alt="Backtest showing 438,100% gain with 1K capital in 2024">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $1,000</li>
+          <li><strong>Total Profit:</strong> $4.38M</li>
+          <li><strong>Gain:</strong> 438,100%</li>
+          <li><strong>Period:</strong> Jan-Dec 2024</li>
+        </ul>
+      </div>
+      <!-- Report 4 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">10K Capital - Detailed Metrics</h3>
+        <img src="/images/backtest-4.jpg" alt="Detailed backtest report with metrics and histograms for 10K capital">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $10,000</li>
+          <li><strong>Total Net Profit:</strong> $4,381,269</li>
+          <li><strong>Profit Factor:</strong> 3.70</li>
+          <li><strong>Win Rate:</strong> 94.91%</li>
+          <li><strong>Max Drawdown:</strong> 12.39%</li>
+        </ul>
+        <a href="/downloads/backtest-4.pdf" class="text-purple-400 hover:underline">Download Full Report</a>
+      </div>
+      <!-- Report 5 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">1K Capital - Detailed Metrics</h3>
+        <img src="/images/backtest-5.jpg" alt="Detailed backtest report with metrics and histograms for 1K capital">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $1,000</li>
+          <li><strong>Total Net Profit:</strong> $186,003.68</li>
+          <li><strong>Profit Factor:</strong> 3.11</li>
+          <li><strong>Win Rate:</strong> 91.51%</li>
+          <li><strong>Max Drawdown:</strong> 12.36%</li>
+        </ul>
+        <a href="/downloads/backtest-5.pdf" class="text-purple-400 hover:underline">Download Full Report</a>
+      </div>
+      <!-- Report 6 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">1K Capital - Additional Metrics</h3>
+        <img src="/images/backtest-6.jpg" alt="Detailed backtest report with metrics and histograms for 1K capital">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $1,000</li>
+          <li><strong>Total Net Profit:</strong> $1,247,216.80</li>
+          <li><strong>Profit Factor:</strong> 3.24</li>
+          <li><strong>Win Rate:</strong> 93.71%</li>
+          <li><strong>Max Drawdown:</strong> 20.40%</li>
+        </ul>
+        <a href="/downloads/backtest-6.pdf" class="text-purple-400 hover:underline">Download Full Report</a>
+      </div>
+      <!-- Report 7 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">1K Capital - Medium Risk (2024)</h3>
+        <img src="/images/backtest-7.jpg" alt="Backtest showing 125,000% gain with 1K capital in 2024">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $1,000</li>
+          <li><strong>Total Profit:</strong> $1.25M</li>
+          <li><strong>Gain:</strong> 125,000%</li>
+          <li><strong>Period:</strong> Jan-Dec 2024</li>
+        </ul>
+      </div>
+      <!-- Report 8 -->
+      <div class="report-card">
+        <h3 class="text-xl font-semibold mb-2">1K Capital - Low Risk (2024)</h3>
+        <img src="/images/backtest-8.jpg" alt="Backtest showing 18,600% gain with 1K capital in 2024">
+        <ul class="list-disc pl-5 mb-4">
+          <li><strong>Initial Deposit:</strong> $1,000</li>
+          <li><strong>Total Profit:</strong> $186,000</li>
+          <li><strong>Gain:</strong> 18,600%</li>
+          <li><strong>Period:</strong> Jan-Dec 2024</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <footer id="contact">
+    <p>Contact us: <a href="mailto:support@nextrendpro.com">support@nextrendpro.com</a></p>
+    <p>Join our Discord: <a href="#">stratumelite111</a></p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+  <script>
+    AOS.init();
+
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const columns = Math.floor(canvas.width / 20);
+    const drops = Array(columns).fill(1);
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#39FF14';
+      ctx.font = '15px monospace';
+      drops.forEach((y, index) => {
+        const text = String.fromCharCode(Math.floor(Math.random() * 128));
+        const x = index * 20;
+        ctx.fillText(text, x, y * 20);
+        if (y * 20 > canvas.height && Math.random() > 0.975) {
+          drops[index] = 0;
+        }
+        drops[index]++;
+      });
+    }
+    setInterval(drawMatrix, 50);
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
